@@ -111,6 +111,32 @@ exports.init = function (sbot, config) {
     })
   }
 
+  function rm(id, cb) {
+    const file = raf(sanitizedPath(id))
+    file.destroy((err) => {
+      if(err) return cb(err)
+
+      cb()
+    })
+  }
+
+  function ls(opts) {
+    var blobs = [];
+    for(var peer in peers)
+      if(available[peer])
+        for(var id in available[peer]) {
+          var newBlob = {
+            id: id,
+            size: 0,
+            ts: 0
+          }
+
+          blobs.push(newBlob)
+        }
+
+    return blobs
+  }
+
   function pushBlob(id, cb) {
     if(!isBlobId(id))
       return cb(new Error('invalid hash:'+id))
@@ -363,6 +389,13 @@ exports.init = function (sbot, config) {
         fsURL(id, cb)
       }
     })
+  }
+
+  // These are the APIs that ssb-blobs-purge needs.
+  sbot.blobs = {
+    rm: this.rm,
+    ls: this.ls,
+    changes: () => { return false }
   }
 
   return {
