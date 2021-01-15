@@ -34,10 +34,14 @@ exports.init = function(dir, overwriteConfig) {
       logging: false
     },
     blobs: {
-      sympathy: 0, //sympathy controls whether you'll replicate
+      sympathy: 3, //sympathy controls whether you'll replicate
       stingy: false,
       pushy: 3,
-      max: 256*1024
+      max: 5 * 1024 * 1024
+    },
+    blobsPurge: {
+      cpuMax: 30,
+      storageLimit: 100 * 1024 * 1024
     }
   }, overwriteConfig)
 
@@ -67,6 +71,7 @@ exports.init = function(dir, overwriteConfig) {
   .use(require('ssb-room/tunnel/client'))
   .use(require('ssb-no-auth'))
   .use(require("./simple-blobs"))
+  .use(require("ssb-blobs-purge"))
   ()
 
   r.sync = function(rpc) {

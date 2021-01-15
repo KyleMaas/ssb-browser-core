@@ -57,6 +57,8 @@ exports.init = function (dir, config) {
 
     SSB.net.conn.start()
 
+    SSB.blobsPurge.start();
+
     SSB.events.emit("SSB: loaded")
   })
 }
