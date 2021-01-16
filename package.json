@@ -24,6 +24,7 @@
     "push-stream-to-pull-stream": "^1.0.3",
     "sanitize-filename": "^1.6.3",
     "secret-stack": "^6.3.2",
+    "ssb-backlinks": "^2.1.1",
     "ssb-blob-files": "https://github.com/ssbc/ssb-blob-files#browser-support",
     "ssb-blobs-purge": "^0.2.0",
     "ssb-caps": "^1.1.0",

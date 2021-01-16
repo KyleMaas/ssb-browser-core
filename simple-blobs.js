@@ -120,18 +120,21 @@ exports.init = function (sbot, config) {
     })
   }
 
-  function ls(opts) {
+  async function ls(opts) {
     var blobs = [];
     for(var peer in peers)
       if(available[peer])
         for(var id in available[peer]) {
+          const file = raf(sanitizedPath(id))
+          const stat = await new Promise(resolve => { file.stat(resolve) });
           var newBlob = {
             id: id,
-            size: 0,
-            ts: 0
+            size: stat.size,
+            ts: Date.now() - 1000 * 86400 * 7 /* Fake it as last week */
           }
 
-          blobs.push(newBlob)
+          if (stat.size > 0)
+            blobs.push(newBlob)
         }
 
     return blobs
@@ -391,14 +394,10 @@ exports.init = function (sbot, config) {
     })
   }
 
-  // These are the APIs that ssb-blobs-purge needs.
-  sbot.blobs = {
-    rm: this.rm,
-    ls: this.ls,
-    changes: () => { return false }
-  }
-
   return {
+    rm: rm,
+    ls: ls,
+    changes: () => { return false },
     hash,
     add,
     addPrivate,
