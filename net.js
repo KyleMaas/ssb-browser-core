@@ -5,22 +5,26 @@ const helpers = require('./core-helpers')
 
 const path = require('path')
 
-exports.init = function(dir, overwriteConfig) {
+exports.init = function(dir, overwriteConfig, extraModules) {
   var keys = ssbKeys.loadOrCreateSync(path.join(dir, 'secret'))
 
   var config = Object.assign({
     caps: { shs: Buffer.from(caps.shs, 'base64') },
     keys,
+    friends: {
+      hops: 2,
+      hookReplicate: false
+    },
     connections: {
       incoming: {
-	tunnel: [{ scope: 'public', transform: 'shs' }],
-	dht: [{ scope: 'public', transform: 'shs' }]
+        tunnel: [{ scope: 'public', transform: 'shs' }],
+        dht: [{ scope: 'public', transform: 'shs' }]
       },
       outgoing: {
-	net: [{ transform: 'shs' }],
-	ws: [{ transform: 'shs' }, { transform: 'noauth' }],
-	tunnel: [{ transform: 'shs' }],
-	dht: [{ transform: 'shs' }]
+        net: [{ transform: 'shs' }],
+        ws: [{ transform: 'shs' }, { transform: 'noauth' }],
+        tunnel: [{ transform: 'shs' }],
+        dht: [{ transform: 'shs' }]
       }
     },
     path: dir,
@@ -43,42 +47,44 @@ exports.init = function(dir, overwriteConfig) {
     }
   }, overwriteConfig)
 
-  var r = SecretStack(config)
-  .use(require('ssb-db2/db'))
-  .use(require('ssb-db2/compat'))
-  .use({
-    init: function (sbot, config) {
-      sbot.db.registerIndex(require('ssb-db2/indexes/full-mentions'))
-    }
-  })
-  .use({
-    init: function (sbot, config) {
-      sbot.db.registerIndex(require('./indexes/contacts'))
-    }
-  })
-  .use({
-    init: function (sbot, config) {
-      sbot.db.registerIndex(require('./indexes/about-profile'))
-    }
-  })
-  .use(require('./ssb-partial-replication'))
-  .use(require('./simple-ooo'))
-  .use(require('ssb-ws'))
-  .use(require('./simple-ebt'))
-  .use(require('ssb-conn'))
-  .use(require('ssb-room/tunnel/client'))
-  .use(require('ssb-no-auth'))
-  .use(require("./simple-blobs"))
-  .use(require('ssb-dht-invite'))
-  ()
+  let secretStack = SecretStack(config)
+      .use(require('ssb-db2/db'))
+      .use(require('ssb-db2/compat'))
+      .use(require('ssb-friends'))
+      .use(require('./ssb-partial-replication'))
+      .use(require('./simple-ooo'))
+      .use(require('ssb-ws'))
+      .use(require('./simple-ebt'))
+      .use(require('ssb-conn'))
+      .use(require('ssb-room-client'))
+      .use(require('ssb-no-auth'))
+      .use(require("./simple-blobs"))
+      .use(require('ssb-dht-invite'))
 
-  r.sync = function(rpc) {
-    if (SSB.feedSyncer.syncing)
+  if (extraModules)
+    secretStack = extraModules(secretStack)
+
+  var r = secretStack()
+
+  function rpcSync(rpc) {
+    if (SSB.feedSyncer.syncing.value)
       ; // only one can sync at a time
     else if (SSB.feedSyncer.inSync())
       helpers.EBTSync(rpc)
     else
       helpers.fullSync(rpc)
+  }
+
+  r.sync = function(rpc) {
+    if (localStorage["/.ssb-lite/restoreFeed"] === "true") {
+      SSB.feedSyncer.syncing.set(true)
+      SSB.syncFeedFromSequence(SSB.net.id, 0, () => {
+        SSB.feedSyncer.syncing.set(false)
+        rpcSync(rpc)
+      })
+      delete localStorage["/.ssb-lite/restoreFeed"]
+    } else
+      rpcSync(rpc)
   }
 
   var timer

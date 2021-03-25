@@ -4,6 +4,11 @@ const dir = '/tmp/ssb-browser-sync'
 
 require('rimraf').sync(dir)
 
+const fs = require('fs')
+
+fs.mkdirSync(dir)
+fs.copyFileSync("scripts/secret", dir + "/secret")
+
 require('../core.js').init(dir)
 
 SSB.events.on('SSB: loaded', function() {
@@ -17,7 +22,7 @@ SSB.events.on('SSB: loaded', function() {
   // var remoteAddress = 'ws://localhost:8989~shs:mvYGZ9GhdAHTXP+QSgQmpdu7fZBwzZTRAlpTiIClt1E='
   // var remoteAddress = 'ws://localhost:8989~shs:6CAxOI3f+LUOVrbAl0IemqiS7ATpQvr9Mdw9LC4+Uv0='
 
-  SSB.net.id = '@VIOn+8a/vaQvv/Ew3+KriCngyUXHxHbjXkj4GafBAY0=.ed25519'
+  //SSB.net.id = '@VIOn+8a/vaQvv/Ew3+KriCngyUXHxHbjXkj4GafBAY0=.ed25519'
 
   SSB.net.connect(remoteAddress, (err, rpc) => {
     console.time("downloading main profile")
@@ -36,7 +41,8 @@ SSB.events.on('SSB: loaded', function() {
 
         console.log("starting sync")
         SSB.feedSyncer.syncFeeds(rpc, () => {
-          console.log(Object.assign(SSB.db.getStatus(), SSB.feedSyncer.status()))
+          console.log("db", SSB.db.getStatus())
+          console.log("feed", SSB.feedSyncer.status())
           console.time("query")
           SSB.db.query(
             and(type('post'), isPublic()),
@@ -45,7 +51,8 @@ SSB.events.on('SSB: loaded', function() {
             toCallback((err, answer) => {
               console.timeEnd("query")
               console.log("got", answer.results.length)
-              console.log(Object.assign(SSB.db.getStatus(), SSB.feedSyncer.status()))
+              console.log("db", SSB.db.getStatus())
+              console.log("feed", SSB.feedSyncer.status())
             })
           )
         })
